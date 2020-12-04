@@ -1,0 +1,85 @@
+Define Mu 1
+Define rho 1 
+Define MASS 1
+Define I_a 1
+Define I_b 1
+Define I_c 1
+Define FDLV 6 
+Define ADLV 10
+Define SDLV 7
+Define buff 0.2
+Define GRAVITY -9.81
+
+
+
+2 1 GfsSimulation GfsBox GfsGEdge {} {
+
+	GfsTime { end = 0 }
+
+	ProjectionParams { tolerance = 1e-6 }
+
+	PhysicalParams { L = ? alpha = 1/rho }
+
+	ApproxProjectionParams { tolerance = 1e-6 }
+
+	GfsRefine FDLV
+
+	GfsRefineSolid SDLV
+
+	GModule ode
+
+	GfsSolidMovingODE Sphere.gts {,,,} {level = SDLV} {
+#init mass center
+	cx  = 0. cy = 0. cz = 0.
+#init angular pos.
+	ex = 0. ey = 0. ez = 0.
+#init vel
+	vx = 0. vy = 0. vz = 0.
+#init ang vel
+	ox = 0. oy = 0. oz = 0.
+#Density of solid
+	mass = MASS
+	I11 = I_a
+	I22 = I_b
+	I33 = I_c
+
+#distance for looking for collisions (enclose surface)
+	cradius = 0.5
+#init accel
+	ax = 0. ay = 0. az = 0.
+#init ang accel
+	mx = 0. my = GRAVITY. mz = 0.
+#Degrees of translational freedom (switcher)
+	f_tx = 1. f_ty = 1. f_tz = 1.
+#Switcher for degree of rot. freedom
+	f_rx = 1. f_ry = 1. f_rz = 1.
+
+	K = buff
+	BUFF = buff
+}
+
+	GfsSourceViscosity Mu
+	
+	Source {} V GRAVITY
+
+	AdaptVorticity { istep= 1 } { maxlevel = ADLV cmax = 1e-2 }
+
+}
+
+GfsBox {
+	top = GfsBoundaryOutflow
+}
+
+GfsBox {
+	bottom = GfsBoundary {
+		GfsBcDirichlet U 0
+		GfsBcDirichlet V 0
+		GfsBcDirichlet W 0
+	}
+}
+2 1 top
+
+GfsOutputTime { istep = 1 } stdout
+GfsOutputSolidMovingODE { istep = 1 } data.dat
+GfsOutputSimulation { istep = 1 } V_%4.2f.VTK { format = VTK } 
+GfsOutputSimulation { istep = 1 } G_%4.2f.gfs  
